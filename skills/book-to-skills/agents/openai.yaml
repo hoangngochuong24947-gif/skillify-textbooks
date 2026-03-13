@@ -1,0 +1,4 @@
+interface:
+  display_name: "Book to Skills"
+  short_description: "Turn books into reusable methodology skills"
+  default_prompt: "Use -to-skills to extract a reusable methodology bundle from this book."

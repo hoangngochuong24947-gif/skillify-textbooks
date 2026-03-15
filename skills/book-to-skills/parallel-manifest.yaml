@@ -1,0 +1,172 @@
+# Parallel Agent Execution Manifest
+# Defines the dependency graph and execution strategy for book-to-skills extraction
+
+version: "1.0.0"
+description: "Parallel execution configuration for book-to-skills skill extraction"
+
+# ============================================================================
+# AGENT DEFINITIONS
+# ============================================================================
+
+agents:
+  book_profiler:
+    name: "Book Profiler"
+    role: "建立全书地图、章节结构、核心议题"
+    inputs:
+      - BookBrief
+    outputs:
+      - 00-overview.md
+    estimated_duration: "3-5 minutes"
+
+  author_thinking_analyst:
+    name: "Author Thinking Analyst"
+    role: "抽出作者的判断方式、分析视角、推理顺序"
+    inputs:
+      - BookBrief
+    outputs:
+      - 01-author-thinking.md
+    estimated_duration: "3-5 minutes"
+
+  methodology_miner_explicit:
+    name: "Methodology Miner - Explicit"
+    role: "提取书中直接命名的方法、框架、模型"
+    inputs:
+      - 00-overview.md
+      - 01-author-thinking.md
+    outputs:
+      - explicit_methods.json
+    estimated_duration: "5-7 minutes"
+
+  methodology_miner_implicit:
+    name: "Methodology Miner - Implicit"
+    role: "提取书中反复出现但未命名的分析套路"
+    inputs:
+      - 00-overview.md
+      - 01-author-thinking.md
+    outputs:
+      - implicit_methods.json
+    estimated_duration: "5-7 minutes"
+
+  scenario_router:
+    name: "Scenario Router"
+    role: "把方法和用户问题连接起来，明确调用时机"
+    inputs:
+      - MethodCard[]
+    outputs:
+      - 03-scenario-router.md
+    estimated_duration: "4-6 minutes"
+
+  skill_packager:
+    name: "Skill Packager / QA"
+    role: "包装为 skill 规范，检查证据完整性"
+    inputs:
+      - 00-overview.md
+      - 01-author-thinking.md
+      - 02-method-catalog.md
+      - 03-scenario-router.md
+    outputs:
+      - 04-subagent-playbooks.md
+      - 05-master-skill-spec.md
+      - SkillBundleManifest
+    estimated_duration: "5-8 minutes"
+
+# ============================================================================
+# EXECUTION GROUPS (Parallel Batches)
+# ============================================================================
+
+execution_groups:
+  group_a_discovery:
+    description: "Discovery phase - no dependencies"
+    parallel: true
+    agents:
+      - book_profiler
+      - author_thinking_analyst
+    merge_strategy: "concatenate"
+
+  group_b_extraction:
+    description: "Method extraction - depends on Group A"
+    parallel: true
+    depends_on: group_a_discovery
+    agents:
+      - methodology_miner_explicit
+      - methodology_miner_implicit
+    merge_strategy: "combine_methods"
+    merge_logic: |
+      # Merge explicit and implicit methods
+      1. Load explicit_methods.json → explicit[]
+      2. Load implicit_methods.json → implicit[]
+      3. Deduplicate by method name similarity
+      4. Generate 02-method-catalog.md with all MethodCards
+
+  group_c_routing:
+    description: "Routing logic - depends on Group B"
+    parallel: false
+    depends_on: group_b_extraction
+    agents:
+      - scenario_router
+
+  group_d_packaging:
+    description: "Final packaging - depends on all previous groups"
+    parallel: false
+    depends_on: group_c_routing
+    agents:
+      - skill_packager
+
+# ============================================================================
+# PARALLEL EXECUTION PROTOCOL
+# ============================================================================
+
+protocol:
+  # How to launch parallel agents
+  launch_strategy: "simultaneous"
+
+  # Error handling for parallel agents
+  error_handling:
+    on_agent_failure: "continue_with_partial"
+    retry_count: 1
+    fallback_strategy: "sequential_execution"
+
+  # Synchronization points
+  sync_points:
+    - after: group_a_discovery
+      action: "merge_discovery_outputs"
+    - after: group_b_extraction
+      action: "merge_method_cards"
+    - after: group_c_routing
+      action: "prepare_final_inputs"
+
+# ============================================================================
+# OPTIMIZATION SETTINGS
+# ============================================================================
+
+optimization:
+  # When to parallelize vs sequential
+  parallel_threshold:
+    min_agents: 2
+    max_agents: 3
+
+  # Expected time savings
+  sequential_estimate: "25-35 minutes"
+  parallel_estimate: "15-20 minutes"
+  time_savings: "~40%"
+
+# ============================================================================
+# QUALITY GATES FOR PARALLEL EXECUTION
+# ============================================================================
+
+quality_gates:
+  group_a:
+    - check: "00-overview.md has chapter structure"
+    - check: "01-author-thinking.md has judgment framework"
+
+  group_b:
+    - check: "MethodCards have evidence references"
+    - check: "No duplicate methods in merged output"
+
+  group_c:
+    - check: "All MethodCards have routing rules"
+    - check: "Trigger conditions are specific"
+
+  group_d:
+    - check: "All documents follow output schemas"
+    - check: "Evidence completeness >= 80%"

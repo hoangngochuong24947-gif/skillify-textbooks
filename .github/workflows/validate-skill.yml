@@ -1,0 +1,119 @@
+name: Validate Skill Definition
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'skills/**'
+      - '.github/workflows/validate-skill.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'skills/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Skill Files
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate YAML files
+        run: |
+          # Check if yq is available
+          if ! command -v yq &> /dev/null; then
+            echo "Installing yq..."
+            wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            chmod +x /usr/local/bin/yq
+          fi
+
+          # Validate parallel-manifest.yaml
+          echo "Validating parallel-manifest.yaml..."
+          if [ -f "skills/book-to-skills/parallel-manifest.yaml" ]; then
+            yq eval '.' skills/book-to-skills/parallel-manifest.yaml > /dev/null
+            echo "✓ parallel-manifest.yaml is valid YAML"
+          else
+            echo "⚠ parallel-manifest.yaml not found"
+          fi
+
+      - name: Check Markdown structure
+        run: |
+          # Check SKILL.md exists and has required sections
+          SKILL_FILE="skills/book-to-skills/SKILL.md"
+
+          if [ ! -f "$SKILL_FILE" ]; then
+            echo "❌ SKILL.md not found"
+            exit 1
+          fi
+
+          echo "Checking SKILL.md structure..."
+
+          # Required sections
+          REQUIRED_SECTIONS=(
+            "name:"
+            "description:"
+            "## Overview"
+            "## When to Use"
+            "## Default Workflow"
+          )
+
+          for section in "${REQUIRED_SECTIONS[@]}"; do
+            if grep -q "$section" "$SKILL_FILE"; then
+              echo "✓ Found: $section"
+            else
+              echo "❌ Missing: $section"
+              exit 1
+            fi
+          done
+
+      - name: Validate references exist
+        run: |
+          REF_DIR="skills/book-to-skills/references"
+          REQUIRED_REFS=(
+            "query-packs.md"
+            "subagent-playbooks.md"
+            "output-schemas.md"
+          )
+
+          for ref in "${REQUIRED_REFS[@]}"; do
+            if [ -f "$REF_DIR/$ref" ]; then
+              echo "✓ Found reference: $ref"
+            else
+              echo "❌ Missing reference: $ref"
+              exit 1
+            fi
+          done
+
+      - name: Check file naming consistency
+        run: |
+          # Check example outputs follow naming convention
+          EXAMPLE_DIR="examples/example-book"
+          if [ -d "$EXAMPLE_DIR" ]; then
+            EXPECTED_FILES=(
+              "00-overview.md"
+              "01-author-thinking.md"
+              "02-method-catalog.md"
+              "03-scenario-router.md"
+              "04-subagent-playbooks.md"
+              "05-master-skill-spec.md"
+            )
+
+            for file in "${EXPECTED_FILES[@]}"; do
+              if [ -f "$EXAMPLE_DIR/$file" ]; then
+                echo "✓ Found example: $file"
+              else
+                echo "⚠ Missing example: $file"
+              fi
+            done
+          fi
+
+      - name: Summary
+        run: |
+          echo "==================================="
+          echo "Validation Complete"
+          echo "==================================="
+          echo "Skill: book-to-skills"
+          echo "Version: $(cat VERSION)"
+          echo "All checks passed ✓"

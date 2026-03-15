@@ -76,14 +76,90 @@ If some fields are missing, continue with reasonable assumptions and record them
 
 ## Default Workflow
 
+### Phase 1: Setup (Sequential)
 1. **Create NotebookLM notebook** for the selected book
-2. **Execute five-stage query packs** from [references/query-packs.md](references/query-packs.md)
-3. **Build book map and author thinking model**
-4. **Convert techniques into MethodCards** (see schema below)
-5. **Route methods to problem types** and define combination rules
+2. **Verify source processing** before proceeding
+
+### Phase 2: Parallel Extraction (Parallel Execution)
+
+Execute these packs in parallel where dependencies allow:
+
+```
+┌─ Pack 1: 全书结构图 ─┐
+│    (Book Profiler)   │
+│         ↓            │
+│   00-overview.md     │
+└──────────────────────┘
+                       ↘
+                        ┌─ Pack 3: 方法论抽取 ─┐
+                        │  (Methodology Miner) │
+                        │       ↓              │
+                        │   MethodCards[]      │
+                        └──────────────────────┘
+                       ↗                         ↘
+┌─ Pack 2: 作者思维 ───┐                         ┌─ Pack 4: 场景路由 ─┐
+│(Author Thinking     │                         │ (Scenario Router)  │
+│     Analyst)         │                         │       ↓            │
+│         ↓            │                         │ 03-scenario-router │
+│ 01-author-thinking   │                         └────────────────────┘
+└──────────────────────┘                                          ↘
+                                                                    ↘
+                        ┌─ Pack 5: 冲突校验与综合 ─────────────────────┐
+                        │        (Skill Packager / QA)               │
+                        │                    ↓                        │
+                        │        Final Skill Bundle                   │
+                        └─────────────────────────────────────────────┘
+```
+
+**Parallel Rules:**
+- Pack 1 & Pack 2: Execute in parallel (no dependencies)
+- Pack 3: Starts after Pack 1 AND Pack 2 complete
+- Pack 4: Starts after Pack 3 completes
+- Pack 5: Starts after Pack 4 completes, validates all outputs
+
+### Phase 3: Packaging (Sequential)
 6. **Assign subagents** using [references/subagent-playbooks.md](references/subagent-playbooks.md)
 7. **Package into Markdown output bundle** per [references/output-schemas.md](references/output-schemas.md)
 8. **Prepare infographic structure** (optional) using [references/visual-infographic-spec.md](references/visual-infographic-spec.md)
+
+## Parallel Agent Orchestration
+
+### Agent Dependency Graph
+
+| Agent | Dependencies | Parallel Groups |
+|-------|-------------|-----------------|
+| Book Profiler | None | Group A |
+| Author Thinking Analyst | None | Group A |
+| Methodology Miner | Pack 1, Pack 2 outputs | Group B |
+| Scenario Router | MethodCards[] | Group C |
+| Skill Packager / QA | All outputs | Group D (final) |
+
+### Execution Protocol
+
+1. **Launch Group A agents simultaneously**
+   - Both agents query NotebookLM independently
+   - Outputs: `00-overview.md`, `01-author-thinking.md`
+
+2. **Merge Group A outputs** before Group B
+   - Combine book structure + author thinking model
+   - Pass to Methodology Miner as unified context
+
+3. **Group B: Methodology extraction**
+   - Can split into 2 parallel sub-agents:
+     - Sub-agent B1: Extract explicit methods (named frameworks)
+     - Sub-agent B2: Extract implicit methods (recurring patterns)
+   - Merge results into single `MethodCard[]`
+
+4. **Group C: Routing logic**
+   - Single agent, processes all MethodCards
+   - Output: `03-scenario-router.md`
+
+5. **Group D: Validation and packaging**
+   - Parallel validation tasks:
+     - Validate evidence completeness per MethodCard
+     - Check cross-references between documents
+     - Verify routing logic coverage
+   - Final packaging into skill bundle
 
 ## MethodCard Schema
 

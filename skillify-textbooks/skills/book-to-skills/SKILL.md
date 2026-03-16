@@ -248,3 +248,5 @@ When invoked without detailed spec, assume the user wants:
 - Master skill specification for Claude Code / OpenClaw execution
 
 **Start with:** "I'll help you convert this book into reusable skills. First, let me set up the extraction workflow..."
+<!-- 这是一个测试修改 -->
+<!-- 这是第二次测试修改，用于练习 PR -->

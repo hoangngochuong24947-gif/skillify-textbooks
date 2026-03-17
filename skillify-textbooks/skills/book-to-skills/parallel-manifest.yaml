@@ -97,7 +97,16 @@ execution_groups:
       2. Load implicit_methods.json → implicit[]
       3. Deduplicate by method name similarity
       4. Generate 02-method-catalog.md with all MethodCards
-
+      merge_logic:
+  description: "合并两个Miner输出的MethodCard，去重并补全信息"
+  deduplication_rule:
+    # 明确指定相似度判断算法
+    similarity_algorithm: "fuzzy_string_matching + embedding_cosine_similarity"
+    # 相似度≥0.85判定为重复内容，执行合并
+    similarity_threshold: 0.85
+    # 用来判断重复的核心字段
+    match_fields: ["name", "thesis", "steps"]
+  merge_priority: "保留证据引用更充分、步骤更完整的卡片，补全另一张的缺失字段"
   group_c_routing:
     description: "Routing logic - depends on Group B"
     parallel: false

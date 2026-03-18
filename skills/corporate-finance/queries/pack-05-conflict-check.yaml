@@ -1,0 +1,12 @@
+{
+  "filename": "pack-05-conflict-check.yaml",
+  "stage": "conflict-check",
+  "objective": "Resolve overlaps, identify unsupported claims, and prepare the final skill bundle.",
+  "questions": [
+    "Which methods overlap or conflict with one another?",
+    "Which conclusions still need better evidence?",
+    "What should be elevated into the final skill entry point versus left as support material?"
+  ],
+  "evidence_rule": "Mark anything weak as pending_confirmation instead of upgrading it to fact.",
+  "expected_output": "references/04-subagent-playbooks.md and references/05-master-skill-spec.md"
+}

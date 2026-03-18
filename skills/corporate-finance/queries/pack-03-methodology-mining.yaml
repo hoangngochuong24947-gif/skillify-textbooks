@@ -1,0 +1,12 @@
+{
+  "filename": "pack-03-methodology-mining.yaml",
+  "stage": "methodology-mining",
+  "objective": "Extract explicit and implicit reusable methods and convert them into MethodCards.",
+  "questions": [
+    "Which named methods, models, or frameworks appear directly in the book?",
+    "Which recurring but unnamed methods can be inferred from repeated patterns?",
+    "For each method, what are the triggers, steps, limits, and scenarios?"
+  ],
+  "evidence_rule": "Every MethodCard must include traceable evidence and downgrade weak claims.",
+  "expected_output": "references/02-method-catalog.md"
+}

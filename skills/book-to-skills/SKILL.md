@@ -209,6 +209,22 @@ Produce these Markdown artifacts:
 
 Schemas defined in [references/output-schemas.md](references/output-schemas.md).
 
+## Generated Skill Directory
+
+When the extraction is materialized on disk, the final target is a standard skill directory rather than a loose `output/` folder:
+
+- `skills/<book-slug>/SKILL.md`
+- `skills/<book-slug>/workflow.yaml`
+- `skills/<book-slug>/references/00-05*.md`
+- `skills/<book-slug>/queries/pack-*.yaml`
+- `skills/<book-slug>/logs/run-*.jsonl`
+
+Use the lightweight runtime scripts to create this layout:
+
+- `scripts/init_generated_skill.py`
+- `scripts/wait_notebooklm.py`
+- `scripts/finalize_generated_skill.py`
+
 ## Operating Rules
 
 | Rule | Violation Consequence |

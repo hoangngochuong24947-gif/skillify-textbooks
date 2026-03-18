@@ -1,0 +1,12 @@
+{
+  "filename": "pack-02-author-thinking.yaml",
+  "stage": "author-thinking",
+  "objective": "Extract how the author frames problems, sequences judgment, and chooses evidence.",
+  "questions": [
+    "How does the author usually define the problem before solving it?",
+    "What recurring judgment dimensions or heuristics appear across the book?",
+    "Which sequencing habits show up when the author explains decisions?"
+  ],
+  "evidence_rule": "Keep original terms when useful and attach chapter evidence.",
+  "expected_output": "references/01-author-thinking.md"
+}

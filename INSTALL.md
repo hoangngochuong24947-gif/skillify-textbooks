@@ -1,86 +1,84 @@
 # Installation Guide
 
-## Quick Install
-
-### Option 1: Direct Copy (Recommended for Claude Code Users)
-
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/skillify-textbooks.git
-
-# Copy skill to your Claude Code skills directory
-cp -r skillify-textbooks/skills/book-to-skills ~/.claude/skills/
-
-# Done! The skill will auto-trigger on book-related queries
-```
-
-### Option 2: Symbolic Link (For Development)
-
-```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/skillify-textbooks.git
-cd skillify-textbooks
-
-# Create symbolic link for development
-ln -s "$(pwd)/skills/book-to-skills" ~/.claude/skills/book-to-skills
-
-# Now you can edit files and test immediately
-```
-
-## Verification
-
-After installation, verify the skill is recognized:
-
-```bash
-# Check skill files exist
-ls ~/.claude/skills/book-to-skills/
-
-# Expected output:
-# SKILL.md
-# parallel-manifest.yaml
-# AGENT_ORCHESTRATOR.md
-# references/
-```
-
-## Usage
-
-Once installed, simply ask in Claude Code:
-
-```
-"帮我从《思考，快与慢》生成一套技能"
-"Convert 'Thinking, Fast and Slow' into a skill"
-"把《金字塔原理》转成方法论技能"
-```
-
-The skill will automatically:
-1. Parse your book reference
-2. Set up NotebookLM workspace
-3. Execute parallel agent extraction
-4. Generate the skill bundle
-
 ## Requirements
 
-- Claude Code or compatible agent environment
-- NotebookLM MCP connection (for book processing)
-- Git (for installation)
+- Python 3.10+
+- A NotebookLM-compatible workflow outside the repository
+- An agent environment that can use the generated skill directories
 
-## Troubleshooting
+This repository does not bundle a live NotebookLM client. The runtime is designed to stay lightweight and adapter-friendly.
 
-### Skill not triggering?
+## Install for Development
 
-Check that:
-1. Files are in `~/.claude/skills/book-to-skills/`
-2. `SKILL.md` has proper frontmatter (--- name/description ---)
-3. Restart Claude Code after installation
-
-### Parallel execution issues?
-
-The skill supports three execution modes:
-- `auto_parallel` (default): Automatically parallelizes independent agents
-- `manual_batch`: User confirms each batch
-- `sequential_fallback`: Runs all agents sequentially
-
-To force sequential mode, add to your query:
+```bash
+git clone https://github.com/YOUR_USERNAME/skillify-textbooks.git
+cd skillify-textbooks
 ```
-"...使用串行模式执行"
+
+## Verify the Runtime Layer
+
+```bash
+python -m unittest discover -s tests -p "test_*.py"
 ```
+
+## Generate a Standard Skill Directory
+
+```bash
+python scripts/init_generated_skill.py \
+  --skills-root skills \
+  --title "Thinking, Fast and Slow" \
+  --author "Daniel Kahneman" \
+  --domain "Behavioral economics" \
+  --audience "Agent builders" \
+  --goal "Create a reusable book-derived skill" \
+  --language en
+```
+
+Expected output:
+
+```text
+skills/thinking-fast-and-slow/
+```
+
+## Poll a Stage While NotebookLM Works
+
+```bash
+python scripts/wait_notebooklm.py \
+  --skill-dir skills/thinking-fast-and-slow \
+  --stage methodology-mining \
+  --status-file tmp/notebook-status.json
+```
+
+The waiter will:
+
+- poll the stage status
+- keep a checkpoint under `logs/checkpoint.json`
+- append lightweight audit events to `logs/run-*.jsonl`
+- fill in any missing query pack or placeholder artifacts
+
+## Finalize the Skill
+
+```bash
+python scripts/finalize_generated_skill.py \
+  --skill-dir skills/thinking-fast-and-slow
+```
+
+If you are upgrading an older sample that still has `output/00-05*.md`:
+
+```bash
+python scripts/finalize_generated_skill.py \
+  --skill-dir skills/corporate-finance \
+  --legacy-output-dir skills/corporate-finance/output
+```
+
+## Result
+
+After finalization, the generated directory is directly usable as a standard skill folder:
+
+- `SKILL.md`
+- `workflow.yaml`
+- `references/`
+- `queries/`
+- `logs/`
+
+`logs/` remains optional for commit hygiene and is allowed to stay ignored by git.

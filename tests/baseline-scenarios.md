@@ -1,150 +1,84 @@
-# 基线测试场景
+# Baseline Scenarios
 
-用于验证 book-to-skills skill 的压力测试场景。
+Use these scenarios to test `book-to-skills` and the new lightweight runtime layer.
 
-## 场景 1：基本请求
+## Scenario 1: Basic Book-to-Skill Request
 
-**用户输入：**
-> "帮我从《思考，快与慢》这本书生成一套Claude Code技能"
+**User input**
 
-**期望行为：**
-- [ ] 识别 BookBrief（书名、作者）
-- [ ] 提及 NotebookLM MCP 作为首选接口
-- [ ] 规划五段式查询流程
-- [ ] 列出预期输出文件
+> "Help me turn *Thinking, Fast and Slow* into a reusable skill."
 
-**常见失败（无 skill 指导时）：**
-- 直接依赖训练数据生成内容
-- 创建简单的摘要而非 MethodCards
-- 缺少证据引用
+**Expected behavior**
 
----
+- Identify a `BookBrief`
+- Mention NotebookLM as the primary evidence interface
+- Plan staged extraction instead of producing a summary immediately
+- Name the final artifact structure
 
-## 场景 2：多语言处理
+## Scenario 2: Standard Directory Requirement
 
-**用户输入：**
-> "用《Thinking, Fast and Slow》生成中文 skill"
+**User input**
 
-**期望行为：**
-- [ ] 保留英文关键术语（如 System 1/2 Thinking）
-- [ ] 输出为中文但带原文对照
-- [ ] 正确处理 NotebookLM 查询
+> "I want the final output to be a standard skill directory, not just a draft output folder."
 
-**常见失败：**
-- 完全翻译导致术语不一致
-- 忽略语言参数
+**Expected behavior**
 
----
+- Target `skills/<book-slug>/`
+- Produce `SKILL.md`, `workflow.yaml`, `references/`, and `queries/`
+- Treat `output/` as legacy input only
 
-## 场景 3：方法论书籍
+**Common failure without the runtime layer**
 
-**用户输入：**
-> "把《金字塔原理》转成技能"
+- Stops at `output/00-05*.md`
+- Never generates the top-level `SKILL.md`
+- Leaves no workflow contract behind
 
-**期望行为：**
-- [ ] 识别这是一本强方法论书籍
-- [ ] 提取具体的思维框架
-- [ ] 创建可执行的 MethodCards
+## Scenario 3: Long NotebookLM Wait
 
-**常见失败：**
-- 只提取概念定义，不提取操作步骤
-- 缺乏触发条件和边界说明
+**User input**
 
----
+> "NotebookLM is still processing the source. Don't lose the thread while waiting."
 
-## 场景 4：证据质疑
+**Expected behavior**
 
-**用户输入：**
-> "这本书的方法真的有用吗？"
+- Use polling with checkpoint recovery
+- Write a lightweight event log
+- Do useful local side tasks during the wait
 
-**期望行为：**
-- [ ] 展示证据引用
-- [ ] 说明方法的适用边界
-- [ ] 标记证据不足的结论
+**Common failure without the waiter**
 
-**常见失败：**
-- 辩护而不展示证据
-- 回避质疑
+- No checkpoint written
+- No audit trail
+- Context lost between status checks
 
----
+## Scenario 4: Legacy Output Compatibility
 
-## 场景 5：时间压力
+**User input**
 
-**用户输入：**
-> "快点帮我生成技能，我急着用"
+> "I already have `00-05` markdown under an `output/` folder. Upgrade it to the new layout."
 
-**期望行为：**
-- [ ] 坚持五阶段流程
-- [ ] 解释为什么需要证据
-- [ ] 不跳过关键步骤
+**Expected behavior**
 
-**常见失败（违反规则）：**
-- 压缩流程
-- 依赖训练数据快速生成
-- 跳过证据收集
+- Import legacy files into `references/`
+- Generate the final `SKILL.md`
+- Write `skill-bundle-manifest.yaml`
 
----
+## Scenario 5: Evidence Pressure
 
-## 场景 6：范围蔓延
+**User input**
 
-**用户输入：**
-> "把这几本书一起处理：《思考，快与慢》《噪声》《助推》"
+> "Skip the evidence collection and just fill in the missing method cards."
 
-**期望行为：**
-- [ ] 明确拒绝多书处理
-- [ ] 解释第一版限制
-- [ ] 建议逐本处理
+**Expected behavior**
 
-**常见失败：**
-- 接受超出范围的任务
-- 产出低质量的多书混合内容
+- Refuse to upgrade weak claims into facts
+- Keep the evidence-first contract
+- Mark weak conclusions as pending instead of pretending certainty
 
----
+## Runtime Verification Checklist
 
-## 测试执行指南
-
-### RED 阶段（无 skill）
-
-1. 创建子代理，不提供 skill 上下文
-2. 输入上述场景
-3. 记录：
-   - 实际行为
-   - 遗漏步骤
-   - 合理化解释
-
-### GREEN 阶段（有 skill）
-
-1. 创建子代理，提供 SKILL.md
-2. 输入相同场景
-3. 验证：
-   - 是否遵循五阶段流程
-   - 是否强调证据
-   - 是否使用 NotebookLM MCP
-
-### REFACTOR 阶段
-
-1. 识别新出现的合理化模式
-2. 更新 SKILL.md 添加反制
-3. 重新测试直到鲁棒
-
-## 测试记录模板
-
-```markdown
-## 测试记录：[场景名称]
-
-**日期：** YYYY-MM-DD
-**阶段：** RED/GREEN/REFACTOR
-**结果：** PASS/FAIL
-
-### 观察
-- 行为描述...
-
-### 问题
-1. 问题描述...
-
-### 合理化解释（如有）
-- "解释1..."
-
-### 改进措施
-- 在 SKILL.md 中添加...
-```
+- `init_generated_skill.py` creates the full directory skeleton
+- `wait_notebooklm.py` writes `logs/checkpoint.json`
+- `wait_notebooklm.py` appends JSONL events
+- `finalize_generated_skill.py` generates `SKILL.md`
+- legacy `output/` can be imported without breaking content

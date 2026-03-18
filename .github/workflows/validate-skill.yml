@@ -4,12 +4,16 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'skills/**'
-      - '.github/workflows/validate-skill.yml'
+      - "skills/**"
+      - "scripts/**"
+      - "tests/**"
+      - ".github/workflows/validate-skill.yml"
   pull_request:
     branches: [main, master]
     paths:
-      - 'skills/**'
+      - "skills/**"
+      - "scripts/**"
+      - "tests/**"
 
 jobs:
   validate:
@@ -20,100 +24,43 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate YAML files
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install yq
         run: |
-          # Check if yq is available
           if ! command -v yq &> /dev/null; then
-            echo "Installing yq..."
             wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
             chmod +x /usr/local/bin/yq
           fi
 
-          # Validate parallel-manifest.yaml
-          echo "Validating parallel-manifest.yaml..."
-          if [ -f "skills/book-to-skills/parallel-manifest.yaml" ]; then
-            yq eval '.' skills/book-to-skills/parallel-manifest.yaml > /dev/null
-            echo "✓ parallel-manifest.yaml is valid YAML"
-          else
-            echo "⚠ parallel-manifest.yaml not found"
-          fi
-
-      - name: Check Markdown structure
+      - name: Validate generated skill directories
         run: |
-          # Check SKILL.md exists and has required sections
-          SKILL_FILE="skills/book-to-skills/SKILL.md"
-
-          if [ ! -f "$SKILL_FILE" ]; then
-            echo "❌ SKILL.md not found"
-            exit 1
-          fi
-
-          echo "Checking SKILL.md structure..."
-
-          # Required sections
-          REQUIRED_SECTIONS=(
-            "name:"
-            "description:"
-            "## Overview"
-            "## When to Use"
-            "## Default Workflow"
-          )
-
-          for section in "${REQUIRED_SECTIONS[@]}"; do
-            if grep -q "$section" "$SKILL_FILE"; then
-              echo "✓ Found: $section"
-            else
-              echo "❌ Missing: $section"
-              exit 1
+          for dir in skills/*; do
+            [ -d "$dir" ] || continue
+            name="$(basename "$dir")"
+            if [ "$name" = "book-to-skills" ] || [ "$name" = ".claude" ]; then
+              continue
             fi
+
+            echo "Checking generated skill directory: $name"
+            test -f "$dir/SKILL.md"
+            test -f "$dir/workflow.yaml"
+            test -d "$dir/references"
+            test -d "$dir/queries"
+
+            yq eval '.' "$dir/workflow.yaml" > /dev/null
           done
 
-      - name: Validate references exist
+      - name: Validate book-to-skills core references
         run: |
-          REF_DIR="skills/book-to-skills/references"
-          REQUIRED_REFS=(
-            "query-packs.md"
-            "subagent-playbooks.md"
-            "output-schemas.md"
-          )
+          test -f "skills/book-to-skills/SKILL.md"
+          test -f "skills/book-to-skills/parallel-manifest.yaml"
+          test -f "skills/book-to-skills/references/query-packs.md"
+          test -f "skills/book-to-skills/references/output-schemas.md"
 
-          for ref in "${REQUIRED_REFS[@]}"; do
-            if [ -f "$REF_DIR/$ref" ]; then
-              echo "✓ Found reference: $ref"
-            else
-              echo "❌ Missing reference: $ref"
-              exit 1
-            fi
-          done
-
-      - name: Check file naming consistency
+      - name: Run unit tests
         run: |
-          # Check example outputs follow naming convention
-          EXAMPLE_DIR="examples/example-book"
-          if [ -d "$EXAMPLE_DIR" ]; then
-            EXPECTED_FILES=(
-              "00-overview.md"
-              "01-author-thinking.md"
-              "02-method-catalog.md"
-              "03-scenario-router.md"
-              "04-subagent-playbooks.md"
-              "05-master-skill-spec.md"
-            )
-
-            for file in "${EXPECTED_FILES[@]}"; do
-              if [ -f "$EXAMPLE_DIR/$file" ]; then
-                echo "✓ Found example: $file"
-              else
-                echo "⚠ Missing example: $file"
-              fi
-            done
-          fi
-
-      - name: Summary
-        run: |
-          echo "==================================="
-          echo "Validation Complete"
-          echo "==================================="
-          echo "Skill: book-to-skills"
-          echo "Version: $(cat VERSION)"
-          echo "All checks passed ✓"
+          python -m unittest discover -s tests -p "test_*.py"

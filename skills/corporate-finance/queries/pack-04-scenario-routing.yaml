@@ -1,0 +1,12 @@
+{
+  "filename": "pack-04-scenario-routing.yaml",
+  "stage": "scenario-routing",
+  "objective": "Map user problem types to the methods that should be triggered.",
+  "questions": [
+    "For what kinds of user problems should each method be used?",
+    "When should the method not be used or be combined with another method?",
+    "What order should multiple methods be applied in?"
+  ],
+  "evidence_rule": "Routing decisions should be explainable from the book-derived methods.",
+  "expected_output": "references/03-scenario-router.md"
+}

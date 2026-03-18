@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "book": {
+    "title": "Corporate Finance",
+    "author": "Stephen A. Ross, Randolph W. Westerfield, Bradford D. Jordan",
+    "domain": "Corporate finance",
+    "audience": "Students and finance practitioners",
+    "goal": "Create a reusable corporate finance decision skill",
+    "language": "en"
+  },
+  "execution_mode": "auto_parallel",
+  "stages": [
+    {
+      "id": "prepare-notebook",
+      "kind": "setup",
+      "outputs": [],
+      "notes": "Create or reuse the NotebookLM notebook and import the book source."
+    },
+    {
+      "id": "book-mapping",
+      "kind": "query-pack",
+      "query_pack": "queries/pack-01-book-mapping.yaml",
+      "outputs": [
+        "references/00-overview.md"
+      ]
+    },
+    {
+      "id": "author-thinking",
+      "kind": "query-pack",
+      "query_pack": "queries/pack-02-author-thinking.yaml",
+      "outputs": [
+        "references/01-author-thinking.md"
+      ]
+    },
+    {
+      "id": "methodology-mining",
+      "kind": "query-pack",
+      "query_pack": "queries/pack-03-methodology-mining.yaml",
+      "outputs": [
+        "references/02-method-catalog.md"
+      ]
+    },
+    {
+      "id": "scenario-routing",
+      "kind": "query-pack",
+      "query_pack": "queries/pack-04-scenario-routing.yaml",
+      "outputs": [
+        "references/03-scenario-router.md"
+      ]
+    },
+    {
+      "id": "conflict-check",
+      "kind": "query-pack",
+      "query_pack": "queries/pack-05-conflict-check.yaml",
+      "outputs": [
+        "references/04-subagent-playbooks.md and references/05-master-skill-spec.md"
+      ]
+    }
+  ],
+  "wait_policy": {
+    "poll_interval_seconds": 5,
+    "timeout_seconds": 300,
+    "max_retries": 3,
+    "side_tasks": [
+      "ensure_query_packs",
+      "ensure_stage_placeholders",
+      "initialize_logs",
+      "validate_previous_outputs",
+      "prepare_next_stage_prompts"
+    ]
+  },
+  "artifacts": {
+    "skill_root": "skills/corporate-finance",
+    "references": [
+      "references/00-overview.md",
+      "references/01-author-thinking.md",
+      "references/02-method-catalog.md",
+      "references/03-scenario-router.md",
+      "references/04-subagent-playbooks.md",
+      "references/05-master-skill-spec.md"
+    ],
+    "queries": [
+      "queries/pack-01-book-mapping.yaml",
+      "queries/pack-02-author-thinking.yaml",
+      "queries/pack-03-methodology-mining.yaml",
+      "queries/pack-04-scenario-routing.yaml",
+      "queries/pack-05-conflict-check.yaml"
+    ],
+    "bundle_manifest": "skill-bundle-manifest.yaml"
+  },
+  "logging": {
+    "event_stream": "logs/run-*.jsonl",
+    "checkpoint": "logs/checkpoint.json",
+    "level": "lightweight"
+  }
+}

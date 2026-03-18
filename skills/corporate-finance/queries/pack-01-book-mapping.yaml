@@ -1,0 +1,12 @@
+{
+  "filename": "pack-01-book-mapping.yaml",
+  "stage": "book-mapping",
+  "objective": "Build the book map, chapter progression, recurring themes, and core claims.",
+  "questions": [
+    "What is the high-level structure of the book?",
+    "How do the chapters build on one another?",
+    "Which themes recur across multiple chapters?"
+  ],
+  "evidence_rule": "Cite chapter or section evidence for every structural claim.",
+  "expected_output": "references/00-overview.md"
+}
